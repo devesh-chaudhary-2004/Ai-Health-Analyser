@@ -1,27 +1,89 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { getReportById } from '../utils/healthAnalyzer';
-import { HealthReport as HealthReportType } from '../utils/healthAnalyzer';
+import { healthReportAPI } from '../services/api';
 import Navbar from '../components/Navbar';
-import { Download, Calendar, ArrowLeft, Activity, AlertTriangle, Heart, Apple, Dumbbell, ShieldAlert, Stethoscope, Leaf, CheckCircle, XCircle, Pill } from 'lucide-react';
+import { Download, Calendar, ArrowLeft, Activity, AlertTriangle, Heart, Apple, Dumbbell, ShieldAlert, Stethoscope, Leaf, CheckCircle, XCircle, Pill, Bell } from 'lucide-react';
 import jsPDF from 'jspdf';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
+import { reminderAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+
+interface HealthReportType {
+  _id?: string;
+  id?: string;
+  userId: string;
+  date: string;
+  symptoms: string[];
+  causes: string[];
+  deficiencies: string[];
+  prevention: string[];
+  cure: string[];
+  medicines: string[];
+  yoga: string[];
+  exercises: string[];
+  foodsToEat: string[];
+  foodsToAvoid: string[];
+  thingsToFollow: string[];
+  thingsToAvoid: string[];
+  naturalRemedies: string[];
+  healthScore: number;
+  summary: string;
+}
 
 export default function HealthReport() {
   const { id } = useParams<{ id: string }>();
   const [report, setReport] = useState<HealthReportType | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (id) {
-      const foundReport = getReportById(id);
-      if (foundReport) {
-        setReport(foundReport);
+      fetchReport();
+    }
+  }, [id]);
+
+  const fetchReport = async () => {
+    try {
+      setLoading(true);
+      const response = await healthReportAPI.getReportById(id!);
+      if (response.success && response.data) {
+        const reportData = response.data;
+        // Transform backend response to match frontend format
+        const formattedReport: HealthReportType = {
+          _id: reportData._id,
+          id: reportData._id,
+          userId: reportData.userId || '',
+          date: reportData.date || new Date().toISOString(),
+          symptoms: reportData.symptoms || [],
+          causes: reportData.causes || [],
+          deficiencies: reportData.deficiencies || [],
+          prevention: Array.isArray(reportData.prevention) ? reportData.prevention : (reportData.prevention ? [reportData.prevention] : []),
+          cure: reportData.cure || [],
+          medicines: reportData.medicines || [],
+          yoga: reportData.yoga || [],
+          exercises: reportData.exercises || [],
+          foodsToEat: reportData.foodsToEat || [],
+          foodsToAvoid: reportData.foodsToAvoid || [],
+          thingsToFollow: reportData.thingsToFollow || [],
+          thingsToAvoid: reportData.thingsToAvoid || [],
+          naturalRemedies: reportData.naturalRemedies || [],
+          healthScore: reportData.healthScore || 70,
+          summary: reportData.summary || ''
+        };
+        setReport(formattedReport);
       } else {
+        toast.error('Report not found');
         navigate('/dashboard');
       }
+    } catch (error: any) {
+      console.error('Error fetching report:', error);
+      toast.error('Failed to load report');
+      navigate('/dashboard');
+    } finally {
+      setLoading(false);
     }
-  }, [id, navigate]);
+  };
 
   const handleDownloadPDF = () => {
     if (!report) return;
@@ -117,8 +179,10 @@ export default function HealthReport() {
   const handleMakeDietPlan = () => {
     navigate(`/diet-planner/${id}`);
   };
+  
+  const reportId = report?._id || report?.id || id;
 
-  if (!report) {
+  if (loading || !report) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-cyan-50 to-white dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
         <Navbar />
@@ -202,6 +266,26 @@ export default function HealthReport() {
                   <Calendar className="w-5 h-5" />
                   Make Diet Plan
                 </button>
+                {report.medicines && report.medicines.length > 0 && user && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await reminderAPI.createRemindersFromReport(id!, user.id);
+                        if (response.success) {
+                          toast.success(`${response.message || 'Medicine reminders created!'}`);
+                          navigate('/reminders');
+                        }
+                      } catch (error: any) {
+                        console.error('Error creating reminders:', error);
+                        toast.error(error.response?.data?.error || 'Failed to create reminders');
+                      }
+                    }}
+                    className="flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-500 text-white hover:shadow-xl transition-shadow"
+                  >
+                    <Bell className="w-5 h-5" />
+                    Create Medicine Reminders
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -227,24 +311,24 @@ export default function HealthReport() {
           {/* Summary */}
           <div className="mb-8 p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700">
             <h3 className="text-gray-900 dark:text-white mb-3">Summary</h3>
-            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{report.summary}</p>
+            <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{report.summary || 'No summary available'}</p>
           </div>
 
           {/* Main Report Sections */}
           <div className="space-y-6">
-            <ReportSection title="Detected Symptoms" items={report.symptoms} icon={AlertTriangle} />
-            <ReportSection title="Possible Causes" items={report.causes} icon={ShieldAlert} />
-            <ReportSection title="Nutritional Deficiencies" items={report.deficiencies} icon={Apple} />
-            <ReportSection title="Prevention Tips" items={report.prevention} icon={Heart} />
-            <ReportSection title="Cure & Treatment" items={report.cure} icon={Stethoscope} />
-            <ReportSection title="Recommended Medicines" items={report.medicines} icon={Pill} />
-            <ReportSection title="Yoga Practices" items={report.yoga} icon={Activity} />
-            <ReportSection title="Exercise Recommendations" items={report.exercises} icon={Dumbbell} />
-            <ReportSection title="Foods to Eat" items={report.foodsToEat} icon={Apple} />
-            <ReportSection title="Foods to Avoid" items={report.foodsToAvoid} icon={XCircle} />
-            <ReportSection title="Things to Follow" items={report.thingsToFollow} icon={CheckCircle} />
-            <ReportSection title="Things to Avoid" items={report.thingsToAvoid} icon={XCircle} />
-            <ReportSection title="Natural Remedies & Herbs" items={report.naturalRemedies} icon={Leaf} />
+            {report.symptoms && report.symptoms.length > 0 && <ReportSection title="Detected Symptoms" items={report.symptoms} icon={AlertTriangle} />}
+            {report.causes && report.causes.length > 0 && <ReportSection title="Possible Causes" items={report.causes} icon={ShieldAlert} />}
+            {report.deficiencies && report.deficiencies.length > 0 && <ReportSection title="Nutritional Deficiencies" items={report.deficiencies} icon={Apple} />}
+            {report.prevention && report.prevention.length > 0 && <ReportSection title="Prevention Tips" items={report.prevention} icon={Heart} />}
+            {report.cure && report.cure.length > 0 && <ReportSection title="Cure & Treatment" items={report.cure} icon={Stethoscope} />}
+            {report.medicines && report.medicines.length > 0 && <ReportSection title="Recommended Medicines" items={report.medicines} icon={Pill} />}
+            {report.yoga && report.yoga.length > 0 && <ReportSection title="Yoga Practices" items={report.yoga} icon={Activity} />}
+            {report.exercises && report.exercises.length > 0 && <ReportSection title="Exercise Recommendations" items={report.exercises} icon={Dumbbell} />}
+            {report.foodsToEat && report.foodsToEat.length > 0 && <ReportSection title="Foods to Eat" items={report.foodsToEat} icon={Apple} />}
+            {report.foodsToAvoid && report.foodsToAvoid.length > 0 && <ReportSection title="Foods to Avoid" items={report.foodsToAvoid} icon={XCircle} />}
+            {report.thingsToFollow && report.thingsToFollow.length > 0 && <ReportSection title="Things to Follow" items={report.thingsToFollow} icon={CheckCircle} />}
+            {report.thingsToAvoid && report.thingsToAvoid.length > 0 && <ReportSection title="Things to Avoid" items={report.thingsToAvoid} icon={XCircle} />}
+            {report.naturalRemedies && report.naturalRemedies.length > 0 && <ReportSection title="Natural Remedies & Herbs" items={report.naturalRemedies} icon={Leaf} />}
           </div>
 
           {/* Disclaimer */}

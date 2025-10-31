@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Activity, Home, LayoutDashboard, LogOut, Sun, Moon, Info, MessageSquare } from 'lucide-react';
+import { Activity, Home, LayoutDashboard, LogOut, Sun, Moon, Info, MessageSquare, Bell } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -21,7 +21,7 @@ export default function Navbar() {
             <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-400 rounded-xl flex items-center justify-center">
               <Activity className="w-6 h-6 text-white" />
             </div>
-            <span className="font-semibold text-gray-900 dark:text-white">Health Analyzer</span>
+            <span className="font-semibold text-gray-900 dark:text-white">HEALWELL AI</span>
           </Link>
 
           <div className="flex items-center gap-6">
@@ -34,6 +34,10 @@ export default function Navbar() {
                 <Link to="/dashboard" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
                   <LayoutDashboard className="w-5 h-5" />
                   <span className="hidden sm:inline">Dashboard</span>
+                </Link>
+                <Link to="/reminders" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
+                  <Bell className="w-5 h-5" />
+                  <span className="hidden sm:inline">Reminders</span>
                 </Link>
                 <Link to="/about" className="flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-emerald-500 dark:hover:text-emerald-400 transition-colors">
                   <Info className="w-5 h-5" />

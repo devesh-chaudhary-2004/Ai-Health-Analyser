@@ -8,6 +8,7 @@ export default function Register() {
   const [name, setName] = useState('');
   const [age, setAge] = useState('');
   const [email, setEmail] = useState('');
+  const [gender, setGender] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -37,7 +38,7 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const result = await register(name, parseInt(age), email, password);
+      const result = await register(name, parseInt(age), email, password, gender || undefined);
       if (result.success) {
         navigate('/dashboard');
       } else {
@@ -107,6 +108,34 @@ export default function Register() {
                   />
                 </div>
               </div>
+               <div>
+  <label
+    htmlFor="gender"
+    className="block text-gray-700 dark:text-gray-300 mb-2"
+  >
+    Gender
+  </label>
+  <div className="relative">
+    <select
+      id="gender"
+      value={gender}
+      onChange={(e) => setGender(e.target.value)}
+      className="w-full pl-10 pr-4 py-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent appearance-none"
+      required
+    >
+      <option value="">Select Gender</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+      <option value="Other">Other</option>
+      <option value="Prefer not to say">Prefer not to say</option>
+    </select>
+
+    {/* Optional Icon */}
+   
+  </div>
+</div>
+
+
 
               <div>
                 <label htmlFor="email" className="block text-gray-700 dark:text-gray-300 mb-2">

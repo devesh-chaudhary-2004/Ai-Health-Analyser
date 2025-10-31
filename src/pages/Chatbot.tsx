@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { chatbotAPI } from '../services/api';
 import Navbar from '../components/Navbar';
 import { Send, Bot, User, Sparkles } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -10,6 +13,7 @@ interface Message {
 }
 
 export default function Chatbot() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -30,77 +34,13 @@ export default function Chatbot() {
     scrollToBottom();
   }, [messages]);
 
-  const generateBotResponse = (userMessage: string): string => {
-    const message = userMessage.toLowerCase();
-
-    // Health queries
-    if (message.includes('headache') || message.includes('head pain')) {
-      return "For headaches, I recommend:\n\n1. Stay hydrated - drink plenty of water\n2. Practice relaxation techniques\n3. Try these yoga poses: Child's Pose, Seated Forward Bend\n4. Avoid triggers like bright lights and loud noises\n5. Foods to eat: ginger tea, almonds, watermelon\n\nIf headaches persist, please consult a doctor.";
-    }
-
-    if (message.includes('back pain')) {
-      return "For back pain relief:\n\n1. Practice good posture\n2. Strengthen your core with exercises\n3. Yoga poses: Cat-Cow, Child's Pose, Bridge Pose\n4. Apply heat or ice packs\n5. Avoid sitting for long periods\n\nConsider seeing a physical therapist if pain continues.";
-    }
-
-    if (message.includes('stress') || message.includes('anxiety')) {
-      return "To manage stress and anxiety:\n\n1. Practice deep breathing exercises\n2. Try meditation for 10-15 minutes daily\n3. Yoga: Corpse Pose (Shavasana), Legs-Up-The-Wall\n4. Regular exercise helps reduce stress hormones\n5. Foods: dark chocolate, green tea, omega-3 rich foods\n\nConsider speaking with a mental health professional for persistent anxiety.";
-    }
-
-    if (message.includes('sleep') || message.includes('insomnia')) {
-      return "For better sleep:\n\n1. Maintain a consistent sleep schedule\n2. Create a relaxing bedtime routine\n3. Avoid screens 1 hour before bed\n4. Try yoga: Legs-Up-The-Wall, Child's Pose before bed\n5. Foods to help: chamomile tea, almonds, bananas\n6. Keep your bedroom cool and dark";
-    }
-
-    if (message.includes('energy') || message.includes('tired') || message.includes('fatigue')) {
-      return "To boost your energy:\n\n1. Stay hydrated throughout the day\n2. Eat balanced meals with protein and complex carbs\n3. Exercise regularly - even a 15-minute walk helps\n4. Power foods: nuts, quinoa, leafy greens, eggs\n5. Yoga: Sun Salutations, Warrior Poses\n6. Ensure you're getting 7-9 hours of sleep";
-    }
-
-    // Yoga queries
-    if (message.includes('yoga')) {
-      return "Great! Yoga has many benefits. What are you looking to improve?\n\n• Back pain relief\n• Stress reduction\n• Flexibility\n• Energy boost\n• Better sleep\n\nOr would you like a general yoga routine for beginners?";
-    }
-
-    // Diet queries
-    if (message.includes('diet') || message.includes('food') || message.includes('eat')) {
-      return "I can help with dietary advice! What would you like to know about?\n\n• Foods for specific health concerns\n• Nutrition for energy\n• Weight management\n• Foods to boost immunity\n• Meal planning tips\n\nPlease tell me more about your dietary goals.";
-    }
-
-    if (message.includes('vitamin d')) {
-      return "Vitamin D is essential for bone health and immunity.\n\nRich sources:\n• Fatty fish (salmon, mackerel)\n• Egg yolks\n• Fortified milk and cereals\n• Mushrooms\n• Sunlight exposure (15-20 minutes daily)\n\nConsider supplements if you're deficient (consult your doctor first).";
-    }
-
-    if (message.includes('protein')) {
-      return "Good protein sources include:\n\nAnimal sources:\n• Chicken breast\n• Fish (salmon, tuna)\n• Eggs\n• Greek yogurt\n\nPlant sources:\n• Lentils and beans\n• Quinoa\n• Tofu and tempeh\n• Nuts and seeds\n\nAim for 0.8g per kg of body weight daily.";
-    }
-
-    if (message.includes('immunity') || message.includes('immune')) {
-      return "To boost immunity:\n\n1. Eat vitamin C rich foods: citrus fruits, bell peppers\n2. Include zinc: nuts, seeds, legumes\n3. Probiotics: yogurt, kefir, fermented foods\n4. Stay hydrated\n5. Get adequate sleep (7-9 hours)\n6. Exercise regularly\n7. Manage stress\n8. Vitamin D from sunlight";
-    }
-
-    // Exercise queries
-    if (message.includes('exercise') || message.includes('workout')) {
-      return "Exercise recommendations:\n\n1. Cardio: 150 minutes moderate activity per week\n2. Strength training: 2-3 times per week\n3. Flexibility: Daily stretching or yoga\n\nBeginners can start with:\n• 30-minute walks\n• Bodyweight exercises\n• Beginner yoga flows\n\nAlways warm up before and cool down after exercising!";
-    }
-
-    // Weight queries
-    if (message.includes('weight loss') || message.includes('lose weight')) {
-      return "Healthy weight loss tips:\n\n1. Create a moderate calorie deficit (500 cal/day)\n2. Eat protein with every meal\n3. Include fiber-rich foods\n4. Stay hydrated\n5. Exercise regularly (cardio + strength)\n6. Get adequate sleep\n7. Manage stress\n\nAim for 0.5-1 kg loss per week for sustainable results.";
-    }
-
-    // Default responses
-    const greetings = ['hello', 'hi', 'hey', 'good morning', 'good evening'];
-    if (greetings.some(g => message.includes(g))) {
-      return "Hello! I'm here to help with your health questions. You can ask me about:\n\n• Symptoms and remedies\n• Yoga and exercise\n• Nutrition and diet\n• Lifestyle tips\n• Stress management\n\nWhat would you like to know?";
-    }
-
-    if (message.includes('thank')) {
-      return "You're welcome! Remember, this information is for educational purposes only. Always consult healthcare professionals for medical advice. Is there anything else I can help you with?";
-    }
-
-    return "I can help you with health-related questions! Try asking me about:\n\n• Specific symptoms (headache, back pain, etc.)\n• Yoga poses for different concerns\n• Dietary advice and nutrition\n• Exercise recommendations\n• Stress management\n• Sleep improvement\n\nWhat would you like to know?";
-  };
-
   const handleSend = async () => {
     if (!input.trim()) return;
+
+    if (!user) {
+      toast.error('Please login to use the chatbot');
+      return;
+    }
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -110,21 +50,39 @@ export default function Chatbot() {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageText = input;
     setInput('');
     setIsTyping(true);
 
-    // Simulate bot thinking
-    setTimeout(() => {
-      const botResponse: Message = {
+    try {
+      // Call backend API for AI response
+      const response = await chatbotAPI.chat(messageText, user.id);
+      
+      if (response.success && response.message) {
+        const botResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          text: response.message,
+          sender: 'bot',
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, botResponse]);
+      } else {
+        throw new Error('Failed to get AI response');
+      }
+    } catch (error: any) {
+      console.error('Chatbot error:', error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: generateBotResponse(input),
+        text: "I'm sorry, I'm having trouble connecting right now. Please try again in a moment.",
         sender: 'bot',
         timestamp: new Date()
       };
-
-      setMessages(prev => [...prev, botResponse]);
+      setMessages(prev => [...prev, errorMessage]);
+      toast.error('Failed to get AI response. Please try again.');
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
-import { analyzeHealth, saveReport } from '../utils/healthAnalyzer';
+import { healthReportAPI } from '../services/api';
 import { Sparkles, AlertCircle, Loader2, ChevronRight, ChevronLeft } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function HealthAnalyzer() {
   const [step, setStep] = useState(1);
@@ -19,7 +20,8 @@ export default function HealthAnalyzer() {
     triggers: '',
     existingConditions: '',
     medications: '',
-    lifestyle: ''
+    lifestyle: '',
+    dietPreference: '' // vegetarian or non-vegetarian
   });
 
   const handleNext = () => {
@@ -31,10 +33,17 @@ export default function HealthAnalyzer() {
   };
 
   const handleAnalyze = async () => {
+    if (!user) {
+      toast.error('Please login to continue');
+      navigate('/login');
+      return;
+    }
+
     setLoading(true);
 
-    // Combine all form data into symptoms string
-    const symptoms = `
+    try {
+      // Combine all form data into symptoms string
+      const symptoms = `
 Description: ${formData.description}
 Duration: ${formData.duration}
 Severity: ${formData.severity}
@@ -43,21 +52,43 @@ Triggers: ${formData.triggers}
 Existing Conditions: ${formData.existingConditions}
 Current Medications: ${formData.medications}
 Lifestyle: ${formData.lifestyle}
-    `.trim();
+      `.trim();
 
-    // Simulate API call delay
-    setTimeout(() => {
-      const report = analyzeHealth(symptoms, user?.id || '');
-      saveReport(report);
+      const response = await healthReportAPI.generateAnalysis(
+        user.id,
+        symptoms,
+        'report',
+        {
+          duration: formData.duration,
+          severity: formData.severity,
+          frequency: formData.frequency,
+          worseCondition: formData.triggers,
+          existingConditions: formData.existingConditions,
+          medications: formData.medications,
+          lifestyle: formData.lifestyle,
+          dietPreference: formData.dietPreference // Add diet preference
+        }
+      );
+
+      if (response.success && response.data?.report) {
+        toast.success('Health report generated successfully!');
+        setLoading(false);
+        navigate(`/report/${response.data.report._id || response.data.report.id}`);
+      } else {
+        throw new Error('Failed to generate report');
+      }
+    } catch (error: any) {
+      console.error('Error generating report:', error);
+      toast.error(error.response?.data?.error || 'Failed to generate health report. Please try again.');
       setLoading(false);
-      navigate(`/report/${report.id}`);
-    }, 2000);
+    }
   };
 
   const canProceed = () => {
     if (step === 1) return formData.description.trim().length > 0;
     if (step === 2) return formData.duration && formData.severity;
     if (step === 3) return formData.frequency.trim().length > 0;
+    if (step === 4) return formData.dietPreference !== ''; // Require diet preference
     return true;
   };
 
@@ -102,7 +133,7 @@ Lifestyle: ${formData.lifestyle}
               <span>Symptoms</span>
               <span>Duration</span>
               <span>Details</span>
-              <span>Background</span>
+              <span>Background & Diet</span>
             </div>
           </div>
 
@@ -229,9 +260,42 @@ Lifestyle: ${formData.lifestyle}
             {step === 4 && (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-gray-900 dark:text-white mb-2">Medical Background</h2>
+                  <h2 className="text-gray-900 dark:text-white mb-2">Medical Background & Diet Preference</h2>
                   <p className="text-gray-600 dark:text-gray-300 mb-4">
                     Optional information to help us provide more personalized recommendations
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 dark:text-gray-300 mb-2">
+                    What is your diet preference? *
+                  </label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, dietPreference: 'vegetarian' })}
+                      className={`px-6 py-4 rounded-lg border-2 transition-all ${
+                        formData.dietPreference === 'vegetarian'
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-emerald-300'
+                      }`}
+                    >
+                      🌱 Vegetarian
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, dietPreference: 'non-vegetarian' })}
+                      className={`px-6 py-4 rounded-lg border-2 transition-all ${
+                        formData.dietPreference === 'non-vegetarian'
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-emerald-300'
+                      }`}
+                    >
+                      🍖 Non-Vegetarian
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    This helps us recommend appropriate food items in your diet plan
                   </p>
                 </div>
 

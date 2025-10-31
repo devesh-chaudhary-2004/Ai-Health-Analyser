@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Chatbot from './pages/Chatbot';
 import Profile from './pages/Profile';
 import DietPlanner from './pages/DietPlanner';
+import Reminders from './pages/Reminders';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { Toaster } from './components/ui/sonner';
@@ -31,6 +32,7 @@ function App() {
             <Route path="/chatbot" element={<ProtectedRoute><Chatbot /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
             <Route path="/diet-planner/:reportId?" element={<ProtectedRoute><DietPlanner /></ProtectedRoute>} />
+            <Route path="/reminders" element={<ProtectedRoute><Reminders /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Router>

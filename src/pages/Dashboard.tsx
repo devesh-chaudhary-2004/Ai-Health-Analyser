@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getReports, calculateAverageHealthScore } from '../utils/healthAnalyzer';
-import { HealthReport } from '../utils/healthAnalyzer';
+import { healthReportAPI, reminderAPI } from '../services/api';
 import Navbar from '../components/Navbar';
 import {
   Activity,
@@ -14,10 +13,23 @@ import {
   User,
   Scale,
   Eye,
-  Calculator
+  Calculator,
+  Bell,
+  Clock
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { ImageWithFallback } from '../components/figma/ImageWithFallback';
+import { toast } from 'sonner';
+
+interface HealthReport {
+  _id?: string;
+  id?: string;
+  userId: string;
+  date: string;
+  healthScore: number;
+  summary?: string;
+  symptoms?: string[];
+}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -29,15 +41,13 @@ export default function Dashboard() {
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [bmiResult, setBmiResult] = useState<{ bmi: number; category: string; color: string } | null>(null);
+  const [avgHealthScore, setAvgHealthScore] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [upcomingReminders, setUpcomingReminders] = useState<any[]>([]);
 
   useEffect(() => {
     if (user) {
-      const userReports = getReports(user.id);
-      setReports(userReports);
-
-      const plans = JSON.parse(localStorage.getItem('weeklyPlans') || '[]');
-      const userPlans = plans.filter((p: any) => p.userId === user.id);
-      setWeeklyPlans(userPlans);
+      fetchUserData();
     }
 
     // Random health tip
@@ -56,7 +66,51 @@ export default function Dashboard() {
     setHealthTip(tips[Math.floor(Math.random() * tips.length)]);
   }, [user]);
 
-  const avgHealthScore = user ? calculateAverageHealthScore(user.id) : 0;
+  const fetchUserData = async () => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      
+      // Fetch reports
+      const reportsResponse = await healthReportAPI.getReportsByUser(user.id);
+      if (reportsResponse.success && reportsResponse.data) {
+        setReports(reportsResponse.data);
+      }
+
+      // Fetch average health score
+      const scoreResponse = await healthReportAPI.getAverageHealthScore(user.id);
+      if (scoreResponse.success) {
+        setAvgHealthScore(scoreResponse.averageScore || 0);
+      }
+
+            // Weekly plans from localStorage (or could be fetched from backend if implemented)
+            const plans = JSON.parse(localStorage.getItem('weeklyPlans') || '[]');
+            const userPlans = plans.filter((p: any) => p.userId === user.id);
+            setWeeklyPlans(userPlans);
+
+            // Fetch upcoming reminders
+            try {
+              const remindersResponse = await reminderAPI.getUserReminders(user.id, { isActive: true });
+              if (remindersResponse.success && remindersResponse.data) {
+                const reminders = remindersResponse.data.filter((r: any) => {
+                  const nextReminder = new Date(r.nextReminder);
+                  return nextReminder > new Date();
+                }).sort((a: any, b: any) => 
+                  new Date(a.nextReminder).getTime() - new Date(b.nextReminder).getTime()
+                ).slice(0, 5); // Get top 5 upcoming
+                setUpcomingReminders(reminders);
+              }
+            } catch (error) {
+              console.error('Error fetching reminders:', error);
+            }
+          } catch (error: any) {
+            console.error('Error fetching dashboard data:', error);
+            toast.error('Failed to load dashboard data');
+          } finally {
+            setLoading(false);
+          }
+        };
 
   // Chart data
   const healthScoreData = reports.slice(0, 10).reverse().map((r, index) => ({
@@ -301,7 +355,7 @@ export default function Dashboard() {
               <div className="space-y-3">
                 {reports.slice(0, 5).map((report) => (
                   <div
-                    key={report.id}
+                    key={report._id || report.id}
                     className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 hover:border-emerald-500 transition-colors"
                   >
                     <div className="flex items-center gap-4">
@@ -311,12 +365,12 @@ export default function Dashboard() {
                       <div>
                         <p className="text-gray-900 dark:text-white">{new Date(report.date).toLocaleDateString()}</p>
                         <p className="text-gray-600 dark:text-gray-400 text-sm">
-                          {report.symptoms.length} symptoms detected
+                          {report.symptoms?.length || 0} symptoms detected
                         </p>
                       </div>
                     </div>
                     <Link
-                      to={`/report/${report.id}`}
+                      to={`/report/${report._id || report.id}`}
                       className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-emerald-500 transition-colors"
                     >
                       <Eye className="w-4 h-4" />
@@ -335,6 +389,53 @@ export default function Dashboard() {
                 >
                   <Plus className="w-5 h-5" />
                   Create Your First Assessment
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Upcoming Reminders */}
+          <div className="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg mb-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-gray-900 dark:text-white">Upcoming Reminders</h3>
+              <Link
+                to="/reminders"
+                className="text-emerald-600 dark:text-emerald-400 hover:underline text-sm"
+              >
+                View All
+              </Link>
+            </div>
+
+            {upcomingReminders.length > 0 ? (
+              <div className="space-y-3">
+                {upcomingReminders.map((reminder) => (
+                  <div
+                    key={reminder._id}
+                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-gray-900 dark:text-white text-sm font-medium">{reminder.title}</p>
+                      <p className="text-gray-600 dark:text-gray-400 text-xs">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {new Date(reminder.nextReminder).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Bell className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">No upcoming reminders</p>
+                <Link
+                  to="/reminders"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-lg transition-shadow text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create Reminder
                 </Link>
               </div>
             )}

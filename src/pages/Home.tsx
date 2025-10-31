@@ -2,7 +2,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { Activity, Brain, Heart, TrendingUp, Shield, Sparkles, MessageCircle, FileText, Apple, Stethoscope } from 'lucide-react';
-import { ImageWithFallback } from '../components/figma/ImageWithFallback';
 
 export default function Home() {
   const { user } = useAuth();
@@ -56,65 +55,52 @@ export default function Home() {
       {/* Hero Section */}
       <section className="pt-32 pb-20 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                <Sparkles className="w-4 h-4" />
-                <span>AI-Powered Health Analysis</span>
-              </div>
-              
-              <h1 className="text-gray-900 dark:text-white">
-                Your Personal <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-cyan-500">AI Health</span> & Wellness Analyzer
-              </h1>
-              
-              <p className="text-gray-600 dark:text-gray-300">
-                Enter your symptoms and get comprehensive AI-generated health reports with personalized recommendations for diet, yoga, lifestyle, and medical remedies.
-              </p>
+          <div className="flex flex-col items-center text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
+              <Sparkles className="w-4 h-4" />
+              <span>AI-Powered Health Analysis</span>
+            </div>
+            
+            <h1 className="text-gray-900 dark:text-white">
+              Your Personal <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-cyan-500">AI Health</span> & Wellness Analyzer
+            </h1>
+            
+            <p className="text-gray-600 dark:text-gray-300 max-w-2xl">
+              Enter your symptoms and get comprehensive AI-generated health reports with personalized recommendations for diet, yoga, lifestyle, and medical remedies.
+            </p>
 
-              <div className="flex flex-wrap gap-4">
-                <button
-                  onClick={handleStartAssessment}
-                  className="px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-2xl hover:scale-105 transition-all duration-300"
-                >
-                  Start Assessment
-                </button>
-                <Link
-                  to="/chatbot"
-                  onClick={(e) => {
-                    if (!user) {
-                      e.preventDefault();
-                      navigate('/login');
-                    }
-                  }}
-                  className="flex items-center gap-2 px-8 py-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors"
-                >
-                  <MessageCircle className="w-5 h-5" />
-                  AI Chatbot
-                </Link>
-              </div>
-
-              <div className="flex items-center gap-8 pt-4">
-                <div>
-                  <div className="flex items-center gap-1">
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                      </svg>
-                    ))}
-                  </div>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Trusted by 10,000+ users</p>
-                </div>
-              </div>
+            <div className="flex flex-wrap justify-center gap-4">
+              <button
+                onClick={handleStartAssessment}
+                className="px-8 py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white hover:shadow-2xl hover:scale-105 transition-all duration-300"
+              >
+                Start Assessment
+              </button>
+              <Link
+                to="/chatbot"
+                onClick={(e) => {
+                  if (!user) {
+                    e.preventDefault();
+                    navigate('/login');
+                  }
+                }}
+                className="flex items-center gap-2 px-8 py-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-white border-2 border-gray-200 dark:border-gray-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors"
+              >
+                <MessageCircle className="w-5 h-5" />
+                AI Chatbot
+              </Link>
             </div>
 
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-cyan-400 rounded-3xl blur-3xl opacity-20"></div>
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-                <ImageWithFallback
-                  src="https://images.unsplash.com/photo-1668417421159-e6dacfad76a7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxoZWFsdGglMjB3ZWxsbmVzcyUyMG1lZGljYWx8ZW58MXx8fHwxNzYxNjcyNjE0fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                  alt="Health and wellness"
-                  className="w-full h-auto"
-                />
+            <div className="flex items-center justify-center gap-8 pt-4">
+              <div>
+                <div className="flex items-center gap-1 justify-center">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">Trusted by 10,000+ users</p>
               </div>
             </div>
           </div>
